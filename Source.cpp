@@ -8,6 +8,18 @@
 #include <vector>
 #include <algorithm>
 #include <utility>
+#include <chrono>
+#include <thread>
+
+#define RED "\033[31m"
+#define GREEN "\033[32m"
+#define YELLOW "\033[33m"
+#define BLUE "\033[34m"
+#define MAGENTA "\033[35m"
+#define CYAN "\033[36m"
+#define WHITE "\033[37m"
+#define RESET "\033[0m"
+
 
 using namespace std;
 
@@ -55,8 +67,9 @@ public:
 		cout << "Character attacks!" << endl;
 	}
 
-	virtual void isAlive() {
+	virtual bool isAlive() {
 		cout << "Character is alive!" << endl;
+		return this->health > 0;
 	}
 
 	virtual void showStatus() {
@@ -82,8 +95,8 @@ public:
 		target.setHealth(target.getHealth() - this->getAttackPower());
 	}
 
-	void isAlive() override {
-		cout << "Warrior is alive!" << endl;
+	bool isAlive() override {
+		return this->getHealth() > 0;
 	}
 
 	void showStatus() override {
@@ -113,8 +126,8 @@ public:
 		cout << this->getName() << " attacks " << target.getName() << "!" << endl;
 		target.setHealth(target.getHealth() - this->getAttackPower());
 	}
-	void isAlive() override {
-		cout << "Mage is alive!" << endl;
+	bool isAlive() override {
+		return this->getHealth() > 0;
 	}
 	void showStatus() override {
 		cout << "Mage status!" << endl;
@@ -155,8 +168,8 @@ public:
 		cout << this->getName() << " attacks " << target.getName() << "!" << endl;
 		target.setHealth(target.getHealth() - this->getAttackPower());
 	}
-	void isAlive() override {
-		cout << "Archer is alive!" << endl;
+	bool isAlive() override {
+		return this->getHealth() > 0;
 	}
 	void showStatus() override {
 		cout << "Archer status!" << endl;
@@ -242,9 +255,150 @@ public:
 };
 
 
+enum CHARACTER_TYPE {
+	WARRIOR,
+	MAGE,
+	ARCHER
+};
+
+void myDelay (int numberOfSeconds)
+{
+	this_thread::sleep_for(chrono::seconds(numberOfSeconds));
+}
+
+
+Character* createCharacter(CHARACTER_TYPE characterType) {
+	switch (characterType) {
+	case WARRIOR:
+		return new Warrior("Warrior", 100, 20);
+	case MAGE:
+		return new Mage("Mage", 80, 15);
+	case ARCHER:
+		return new Archer("Archer", 90, 10);
+	default:
+		return nullptr;
+	}
+}
+
 
 int main() {
-	Warrior* warrior = new Warrior("Warrior", 100, 20);
+
+	// Menu
+
+	cout << "Welcome to the game!" << endl;
+
+	cout << "Please choose your character:" << endl;
+	cout << "1. Warrior" << endl;
+	cout << "2. Mage" << endl;
+	cout << "3. Archer" << endl;
+
+	int userCharacter;
+	while (true) {
+		cout << "Enter your choice (1-3): ";
+		cin >> userCharacter;
+		if (userCharacter < 1 || userCharacter > 3) {
+			cout << "Invalid choice. Please try again." << endl;
+			continue; 
+		}
+		if (cin.fail()) {
+			cin.clear(); // Clear the error flag
+			cin.ignore(numeric_limits<streamsize>::max(), '\n');
+			cout << "Invalid input. Please enter a number." << endl;
+			continue; 
+		}
+		break; 
+
+	}
+
+	Character* userCharacterPtr = nullptr;
+	switch (userCharacter)
+	{
+		case 1:
+		cout << "You chose Warrior!" << endl;
+		userCharacterPtr = createCharacter(WARRIOR);
+		break;
+	case 2:
+		cout << "You chose Mage!" << endl;
+		userCharacterPtr = createCharacter(MAGE);
+		break;
+	case 3:
+		cout << "You chose Archer!" << endl;
+		userCharacterPtr = createCharacter(ARCHER);
+		break;
+	default:
+		cout << "Invalid choice!" << endl;
+		break;
+	}
+
+
+	myDelay(2);
+
+	Character* randomCharacterPtr = nullptr;
+	int randomNumForRandomCharacter = rand() % 3 + 1;
+	cout << "Your random character is: " << endl;
+	switch (randomNumForRandomCharacter)
+	{
+	case 1:
+		cout <<  "Warrior!" << endl;
+		randomCharacterPtr = createCharacter(WARRIOR);
+		break;
+	case 2:
+		cout << "Mage!" << endl;
+		randomCharacterPtr = createCharacter(MAGE);
+		break;
+	case 3:
+		cout << "Archer!" << endl;
+		randomCharacterPtr = createCharacter(ARCHER);
+		break;
+	}
+
+	myDelay(2);
+
+
+
+	// Game process
+	BattleManager battleManager;
+
+	unordered_map<Character*, int> characterHealth;
+	characterHealth[userCharacterPtr] = userCharacterPtr->getHealth();
+	characterHealth[randomCharacterPtr] = randomCharacterPtr->getHealth();
+	cout << "\n--- GAME START ---\n" << endl;
+	myDelay(1);
+	userCharacterPtr->showStatus();
+	randomCharacterPtr->showStatus();
+	myDelay(2);
+
+	int roundNumber = 1;
+	while (userCharacterPtr->isAlive() && randomCharacterPtr->isAlive()) {
+		cout << "\n--- ROUND " << roundNumber <<  " ---\n" << endl;
+		userCharacterPtr->attack(*randomCharacterPtr);
+		randomCharacterPtr->attack(*userCharacterPtr);
+		cout << "\n--- STATUS AFTER ROUND ---" << endl;
+		cout << userCharacterPtr->getName() << " HP: " << userCharacterPtr->getHealth() << endl;
+		cout << randomCharacterPtr->getName() << " HP: " << randomCharacterPtr->getHealth() << endl;
+		roundNumber++;
+		myDelay(1); 
+	}
+
+	cout << "\n--- DETERMINING WINNER ---\n" << endl;
+	myDelay(1);
+	
+	battleManager.printWinner(*userCharacterPtr, *randomCharacterPtr);
+
+
+	cout << "\n--- TAKING STOCK ---" << endl;
+	myDelay(1);
+
+	battleManager.printPlacesOfCharacters(characterHealth);
+
+	cout << "\n--- GAME OVER ---\n" << endl;
+	myDelay(1);
+	battleManager.endBattle();
+	delete userCharacterPtr;
+	delete randomCharacterPtr;
+
+
+	/*Warrior* warrior = new Warrior("Warrior", 100, 20);
 	Mage* mage = new Mage("Mage", 80, 15);
 	Archer* archer = new Archer("Archer", 90, 10);
 	BattleManager battleManager;
@@ -298,7 +452,7 @@ int main() {
 
 	delete warrior;
 	delete mage;
-	delete archer;
+	delete archer;*/
 
 	return 0;
 
